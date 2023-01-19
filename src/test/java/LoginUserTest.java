@@ -1,16 +1,18 @@
+import com.google.gson.Gson;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Random;
 
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
 public class LoginUserTest {
     private String email;
     private String password;
+    private String accessToken;
 
     @Before
     public void setUp() {
@@ -20,28 +22,20 @@ public class LoginUserTest {
         this.email = "something" + random.nextInt(10000000) + "@yandex.ru";
         this.password = "password" + random.nextInt(10000000);
         CreateUser createUser = new CreateUser(email, password, "Nikita");
-        Response responseCreate = given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(createUser)
-                .when()
-                .post("/api/auth/register");
-
+        Response responseCreate = UserClient.postApiAuthRegister(createUser);
         responseCreate.then().assertThat().body("success", equalTo(true))
                 .and()
                 .statusCode(200);
+        String responseString = responseCreate.body().asString();
+        Gson gson = new Gson();
+        CreateUserResponse createUserResponse = gson.fromJson(responseString, CreateUserResponse.class);
+        this.accessToken = createUserResponse.getAccessToken();
     }
 
     @Test
     public void checkLoginUserResponseBodyTest() {
         LoginUser loginUser = new LoginUser(email, password);
-        Response responseLogin = given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(loginUser)
-                .when()
-                .post("/api/auth/login");
-        responseLogin.then().assertThat().body("success", equalTo(true))
+        UserClient.postApiAuthLogin(loginUser).then().assertThat().body("success", equalTo(true))
                 .and()
                 .statusCode(200);
     }
@@ -52,17 +46,19 @@ public class LoginUserTest {
         String emailNegative = "something" + random.nextInt(10000000) + "@yandex.ru";
         String passwordNegative = "password" + random.nextInt(10000000);
         LoginUser loginUser = new LoginUser(emailNegative, passwordNegative);
-        Response responseLogin = given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(loginUser)
-                .when()
-                .post("/api/auth/login");
-
-        responseLogin.then().assertThat().body("success", equalTo(false))
+        UserClient.postApiAuthLogin(loginUser).then().assertThat().body("success", equalTo(false))
                 .and()
                 .body("message", equalTo("email or password are incorrect"))
                 .and()
                 .statusCode(401);
+    }
+
+    @After
+    public void cleanUp() {
+        UserClient.deleteApiAuthUser(accessToken).then().assertThat().body("success", equalTo(true))
+                .and()
+                .body("message", equalTo("User successfully removed"))
+                .and()
+                .statusCode(202);
     }
 }

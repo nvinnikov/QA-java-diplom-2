@@ -9,7 +9,6 @@ import org.junit.runners.Parameterized;
 import java.util.List;
 import java.util.Random;
 
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
 @RunWith(Parameterized.class)
@@ -43,60 +42,27 @@ public class CreateOrdersTest {
         String email = "something" + random.nextInt(10000000) + "@yandex.ru";
         String password = "password" + random.nextInt(10000000);
         CreateUser createUser = new CreateUser(email, password, "Nikita");
-        Response responseCreate = given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(createUser)
-                .when()
-                .post("/api/auth/register");
-
-        responseCreate.then().assertThat().body("success", equalTo(true))
+        UserClient.postApiAuthRegister(createUser).then().assertThat().body("success", equalTo(true))
                 .and()
                 .statusCode(200);
-
         LoginUser loginUser = new LoginUser(email, password);
-
-        Response responseLogin = given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(loginUser)
-                .when()
-                .post("/api/auth/login");
+        Response responseLogin = UserClient.postApiAuthLogin(loginUser);
         responseLogin.then().assertThat().body("success", equalTo(true))
                 .and()
                 .statusCode(200);
         String responseString = responseLogin.body().asString();
         Gson gson = new Gson();
         LoginUserResponse loginUserResponse = gson.fromJson(responseString, LoginUserResponse.class);
-        String AccessToken = loginUserResponse.getAccessToken();
-
+        String accessToken = loginUserResponse.getAccessToken();
         Ingredients ingredientsReq = new Ingredients(ingridients);
-
-        Response responseOrders = given()
-                .header("Content-type", "application/json")
-                .and()
-                .header("authorization", AccessToken)
-                .and()
-                .body(ingredientsReq)
-                .when()
-                .post("/api/orders");
-
-        responseOrders.then().assertThat()
+        OrderClient.postApiOrders(accessToken, ingredientsReq).then().assertThat()
                 .statusCode(statusCode);
     }
 
     @Test
     public void checkCreateOrdersNoAuthResponseBodyTest() {
         Ingredients ingredientsReq = new Ingredients(ingridients);
-
-        Response responseOrders = given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(ingredientsReq)
-                .when()
-                .post("/api/orders");
-
-        responseOrders.then().assertThat()
+        OrderClient.postApiOrders(ingredientsReq).then().assertThat()
                 .statusCode(statusCode);
     }
 }

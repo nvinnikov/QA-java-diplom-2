@@ -1,3 +1,4 @@
+import com.google.gson.Gson;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.Before;
@@ -5,7 +6,6 @@ import org.junit.Test;
 
 import java.util.Random;
 
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
 public class CreateUserTest {
@@ -19,16 +19,19 @@ public class CreateUserTest {
         Random random = new Random();
         String email = "something" + random.nextInt(10000000) + "@yandex.ru";
         CreateUser createUser = new CreateUser(email, "nikita", "Nikita");
-        Response response = given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(createUser)
-                .when()
-                .post("/api/auth/register");
-
+        Response response = UserClient.postApiAuthRegister(createUser);
         response.then().assertThat().body("success", equalTo(true))
                 .and()
                 .statusCode(200);
+        String responseString = response.body().asString();
+        Gson gson = new Gson();
+        CreateUserResponse createUserResponse = gson.fromJson(responseString, CreateUserResponse.class);
+        String accessToken = createUserResponse.getAccessToken();
+        UserClient.deleteApiAuthUser(accessToken).then().assertThat().body("success", equalTo(true))
+                .and()
+                .body("message", equalTo("User successfully removed"))
+                .and()
+                .statusCode(202);
     }
 
     @Test
@@ -36,30 +39,24 @@ public class CreateUserTest {
         Random random = new Random();
         String email = "something" + random.nextInt(10000000) + "@yandex.ru";
         CreateUser createUser = new CreateUser(email, "nikita", "Nikita");
-
-        Response response1 = given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(createUser)
-                .when()
-                .post("/api/auth/register");
-
-        response1.then().assertThat().body("success", equalTo(true))
+        Response response = UserClient.postApiAuthRegister(createUser);
+        response.then().assertThat().body("success", equalTo(true))
                 .and()
                 .statusCode(200);
-
-        Response response2 = given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(createUser)
-                .when()
-                .post("/api/auth/register");
-
-        response2.then().assertThat().body("success", equalTo(false))
+        UserClient.postApiAuthRegister(createUser).then().assertThat().body("success", equalTo(false))
                 .and()
                 .body("message", equalTo("User already exists"))
                 .and()
                 .statusCode(403);
+        String responseString = response.body().asString();
+        Gson gson = new Gson();
+        CreateUserResponse createUserResponse = gson.fromJson(responseString, CreateUserResponse.class);
+        String accessToken = createUserResponse.getAccessToken();
+        UserClient.deleteApiAuthUser(accessToken).then().assertThat().body("success", equalTo(true))
+                .and()
+                .body("message", equalTo("User successfully removed"))
+                .and()
+                .statusCode(202);
     }
 
     @Test
@@ -67,15 +64,7 @@ public class CreateUserTest {
         Random random = new Random();
         String email = "something" + random.nextInt(10000000) + "@yandex.ru";
         CreateUser createUser = new CreateUser(email, "Nikita");
-
-        Response response = given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(createUser)
-                .when()
-                .post("/api/auth/register");
-
-        response.then().assertThat().body("success", equalTo(false))
+        UserClient.postApiAuthRegister(createUser).then().assertThat().body("success", equalTo(false))
                 .and()
                 .body("message", equalTo("Email, password and name are required fields"))
                 .and()
