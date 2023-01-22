@@ -4,6 +4,7 @@ import static io.restassured.RestAssured.given;
 
 public class OrderClient {
     private final static String api_orders = "/api/orders";
+
     public OrderClient() {
     }
 

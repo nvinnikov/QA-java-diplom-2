@@ -75,7 +75,7 @@ public class CreateUserTest {
         Gson gson = new Gson();
         CreateUserResponse createUserResponse = gson.fromJson(responseString, CreateUserResponse.class);
         String accessToken = createUserResponse.getAccessToken();
-        if(!Objects.equals(accessToken, null)){
+        if (!Objects.equals(accessToken, null)) {
             UserClient.deleteApiAuthUser(accessToken).then().assertThat().body("success", equalTo(true))
                     .and()
                     .body("message", equalTo("User successfully removed"))
