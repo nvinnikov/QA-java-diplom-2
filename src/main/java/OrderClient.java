@@ -3,6 +3,7 @@ import io.restassured.response.Response;
 import static io.restassured.RestAssured.given;
 
 public class OrderClient {
+    private final static String api_orders = "/api/orders";
     public OrderClient() {
     }
 
@@ -14,7 +15,7 @@ public class OrderClient {
                 .and()
                 .body(ingredientsReq)
                 .when()
-                .post("/api/orders");
+                .post(api_orders);
     }
 
     public static Response postApiOrders(Ingredients ingredientsReq) {
@@ -23,7 +24,7 @@ public class OrderClient {
                 .and()
                 .body(ingredientsReq)
                 .when()
-                .post("/api/orders");
+                .post(api_orders);
     }
 
     public static Response getApiOrders(String accessToken) {
@@ -32,13 +33,13 @@ public class OrderClient {
                 .and()
                 .header("authorization", accessToken)
                 .when()
-                .get("/api/orders");
+                .get(api_orders);
     }
 
     public static Response getApiOrders() {
         return given()
                 .header("Content-type", "application/json")
                 .when()
-                .get("/api/orders");
+                .get(api_orders);
     }
 }

@@ -42,21 +42,22 @@ public class CreateOrdersTest {
         String email = "something" + random.nextInt(10000000) + "@yandex.ru";
         String password = "password" + random.nextInt(10000000);
         CreateUser createUser = new CreateUser(email, password, "Nikita");
-        UserClient.postApiAuthRegister(createUser).then().assertThat().body("success", equalTo(true))
+        Response responseCreate = UserClient.postApiAuthRegister(createUser);
+        responseCreate.then().assertThat().body("success", equalTo(true))
                 .and()
                 .statusCode(200);
-        LoginUser loginUser = new LoginUser(email, password);
-        Response responseLogin = UserClient.postApiAuthLogin(loginUser);
-        responseLogin.then().assertThat().body("success", equalTo(true))
-                .and()
-                .statusCode(200);
-        String responseString = responseLogin.body().asString();
+        String responseString = responseCreate.body().asString();
         Gson gson = new Gson();
-        LoginUserResponse loginUserResponse = gson.fromJson(responseString, LoginUserResponse.class);
-        String accessToken = loginUserResponse.getAccessToken();
+        CreateUserResponse createUserResponse = gson.fromJson(responseString, CreateUserResponse.class);
+        String accessToken = createUserResponse.getAccessToken();
         Ingredients ingredientsReq = new Ingredients(ingridients);
         OrderClient.postApiOrders(accessToken, ingredientsReq).then().assertThat()
                 .statusCode(statusCode);
+        UserClient.deleteApiAuthUser(accessToken).then().assertThat().body("success", equalTo(true))
+                .and()
+                .body("message", equalTo("User successfully removed"))
+                .and()
+                .statusCode(202);
     }
 
     @Test

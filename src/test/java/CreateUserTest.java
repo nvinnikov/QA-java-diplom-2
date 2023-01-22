@@ -4,6 +4,7 @@ import io.restassured.response.Response;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Objects;
 import java.util.Random;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -64,11 +65,22 @@ public class CreateUserTest {
         Random random = new Random();
         String email = "something" + random.nextInt(10000000) + "@yandex.ru";
         CreateUser createUser = new CreateUser(email, "Nikita");
-        UserClient.postApiAuthRegister(createUser).then().assertThat().body("success", equalTo(false))
+        Response response = UserClient.postApiAuthRegister(createUser);
+        response.then().assertThat().body("success", equalTo(false))
                 .and()
                 .body("message", equalTo("Email, password and name are required fields"))
                 .and()
                 .statusCode(403);
+        String responseString = response.body().asString();
+        Gson gson = new Gson();
+        CreateUserResponse createUserResponse = gson.fromJson(responseString, CreateUserResponse.class);
+        String accessToken = createUserResponse.getAccessToken();
+        if(!Objects.equals(accessToken, null)){
+            UserClient.deleteApiAuthUser(accessToken).then().assertThat().body("success", equalTo(true))
+                    .and()
+                    .body("message", equalTo("User successfully removed"))
+                    .and()
+                    .statusCode(202);
+        }
     }
 }
-
