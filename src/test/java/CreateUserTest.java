@@ -1,15 +1,17 @@
 import com.google.gson.Gson;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Objects;
 import java.util.Random;
 
 import static org.hamcrest.Matchers.equalTo;
 
 public class CreateUserTest {
+    private String accessToken;
+
     @Before
     public void setUp() {
         RestAssured.baseURI = "https://stellarburgers.nomoreparties.site/";
@@ -21,18 +23,13 @@ public class CreateUserTest {
         String email = "something" + random.nextInt(10000000) + "@yandex.ru";
         CreateUser createUser = new CreateUser(email, "nikita", "Nikita");
         Response response = UserClient.postApiAuthRegister(createUser);
-        response.then().assertThat().body("success", equalTo(true))
-                .and()
-                .statusCode(200);
         String responseString = response.body().asString();
         Gson gson = new Gson();
         CreateUserResponse createUserResponse = gson.fromJson(responseString, CreateUserResponse.class);
-        String accessToken = createUserResponse.getAccessToken();
-        UserClient.deleteApiAuthUser(accessToken).then().assertThat().body("success", equalTo(true))
+        this.accessToken = createUserResponse.getAccessToken();
+        response.then().assertThat().body("success", equalTo(true))
                 .and()
-                .body("message", equalTo("User successfully removed"))
-                .and()
-                .statusCode(202);
+                .statusCode(200);
     }
 
     @Test
@@ -41,6 +38,10 @@ public class CreateUserTest {
         String email = "something" + random.nextInt(10000000) + "@yandex.ru";
         CreateUser createUser = new CreateUser(email, "nikita", "Nikita");
         Response response = UserClient.postApiAuthRegister(createUser);
+        String responseString = response.body().asString();
+        Gson gson = new Gson();
+        CreateUserResponse createUserResponse = gson.fromJson(responseString, CreateUserResponse.class);
+        this.accessToken = createUserResponse.getAccessToken();
         response.then().assertThat().body("success", equalTo(true))
                 .and()
                 .statusCode(200);
@@ -49,15 +50,6 @@ public class CreateUserTest {
                 .body("message", equalTo("User already exists"))
                 .and()
                 .statusCode(403);
-        String responseString = response.body().asString();
-        Gson gson = new Gson();
-        CreateUserResponse createUserResponse = gson.fromJson(responseString, CreateUserResponse.class);
-        String accessToken = createUserResponse.getAccessToken();
-        UserClient.deleteApiAuthUser(accessToken).then().assertThat().body("success", equalTo(true))
-                .and()
-                .body("message", equalTo("User successfully removed"))
-                .and()
-                .statusCode(202);
     }
 
     @Test
@@ -66,16 +58,20 @@ public class CreateUserTest {
         String email = "something" + random.nextInt(10000000) + "@yandex.ru";
         CreateUser createUser = new CreateUser(email, "Nikita");
         Response response = UserClient.postApiAuthRegister(createUser);
+        String responseString = response.body().asString();
+        Gson gson = new Gson();
+        CreateUserResponse createUserResponse = gson.fromJson(responseString, CreateUserResponse.class);
+        this.accessToken = createUserResponse.getAccessToken();
         response.then().assertThat().body("success", equalTo(false))
                 .and()
                 .body("message", equalTo("Email, password and name are required fields"))
                 .and()
                 .statusCode(403);
-        String responseString = response.body().asString();
-        Gson gson = new Gson();
-        CreateUserResponse createUserResponse = gson.fromJson(responseString, CreateUserResponse.class);
-        String accessToken = createUserResponse.getAccessToken();
-        if (!Objects.equals(accessToken, null)) {
+    }
+
+    @After
+    public void cleanUp() {
+        if (accessToken != null) {
             UserClient.deleteApiAuthUser(accessToken).then().assertThat().body("success", equalTo(true))
                     .and()
                     .body("message", equalTo("User successfully removed"))
